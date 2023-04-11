@@ -1,0 +1,7 @@
+# For local test
+template/
+
+.mypy_cache/
+
+.vscode/
+

@@ -1,0 +1,1 @@
+from app.router.health import router as health_router  # noqa: E401

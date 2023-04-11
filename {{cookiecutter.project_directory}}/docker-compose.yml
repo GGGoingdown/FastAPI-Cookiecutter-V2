@@ -1,0 +1,38 @@
+version: '3'
+services:
+  proxy:
+    image: nginx:1.18.0-alpine
+    container_name: proxy
+    restart: unless-stopped
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - 8080:80
+    depends_on:
+      - app
+    command: [ "nginx-debug", "-g", "daemon off;" ]
+
+  app:
+    image: fastapi-cookiecutter:latest
+    container_name: app
+    restart: unless-stopped
+    volumes:
+      - .:/app/
+    ports:
+      - ${APPLICATION_EXPOSE:-8000}:8000
+    expose:
+      - ${APPLICATION_EXPOSE:-8000}
+    env_file:
+      - ./env/${ENVIRONMENT}.env
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT?Variable not set}
+    command:
+      [
+        "./script/entrypoint.sh",
+        "uvicorn",
+        "app.main:app",
+        "--host=0.0.0.0",
+        "--port=8000",
+        "--workers=1",
+        "--reload"
+      ]

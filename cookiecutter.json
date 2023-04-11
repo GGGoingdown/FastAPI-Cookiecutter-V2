@@ -1,0 +1,15 @@
+{
+    "project_name": "Base Project",
+    "project_description": "",
+    "project_version": "0.1.0",
+    "project_title": "{{ cookiecutter.project_name|replace(' ', '') }}",
+    "project_slug": "{{ cookiecutter.project_name|lower|replace(' ', '-') }}",
+    "project_directory": "{{ cookiecutter.project_name|replace(' ', '-') }}",
+    "admin": "eddie",
+    "admin_email": "eddiepai0401@gmail.com",
+    "admin_password": "",
+    "_copy_without_render": [
+        "*.html",
+        ".drone.yml"
+    ]
+}
