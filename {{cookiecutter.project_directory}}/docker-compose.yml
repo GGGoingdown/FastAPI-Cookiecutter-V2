@@ -1,4 +1,4 @@
-version: '3'
+version: '3.9'
 services:
   proxy:
     image: nginx:1.18.0-alpine
@@ -12,9 +12,25 @@ services:
       - app
     command: [ "nginx-debug", "-g", "daemon off;" ]
 
-  app:
+  init:
+    container_name: init
     image: fastapi-cookiecutter:latest
+    env_file:
+      - ./env/${ENVIRONMENT}.env
+    environment:
+      - MIGRATION=${MIGRATION:-true}
+      - CREATE_INIT_DATA=${CREATE_INIT_DATA:-true}
+    depends_on:
+      - db
+      - cache
+      - broker
+    profiles:
+      - init
+    command: [ "./script/init.sh" ]
+
+  app:
     container_name: app
+    image: fastapi-cookiecutter:latest
     restart: unless-stopped
     volumes:
       - .:/app/
@@ -26,6 +42,10 @@ services:
       - ./env/${ENVIRONMENT}.env
     environment:
       - ENVIRONMENT=${ENVIRONMENT?Variable not set}
+    depends_on:
+      - db
+      - cache
+      - broker
     command:
       [
         "./script/entrypoint.sh",
@@ -36,3 +56,62 @@ services:
         "--workers=1",
         "--reload"
       ]
+  worker:
+    container_name: worker
+    image: fastapi-cookiecutter:latest
+    restart: unless-stopped
+    depends_on:
+      - cache
+      - broker
+    volumes:
+      - .:/app/
+    env_file:
+      - ./env/${ENVIRONMENT}.env
+    command: [ "./script/entrypoint.sh", "python", "./app/main.py" ]
+
+  db:
+    container_name: db
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRE_USERNAME?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRE_PASSWORD?Variable not set}
+      - POSTGRES_DB=${POSTGRE_DB?Variable not set}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - ${POSTGRE_EXPOSE:-5432}:5432
+    expose:
+      - ${POSTGRE_EXPOSE:-5432}
+    volumes:
+      - pg_data:/var/lib/postgresql/data/pgdata
+
+  cache:
+    container_name: cache
+    image: redis:6.2
+    ports:
+      - ${REDIS_EXPOSE:-6379}:6379
+    expose:
+      - ${REDIS_EXPOSE:-6379}
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: >
+      --requirepass ${REDIS_PASSWORD?Variable not set}
+
+  broker:
+    container_name: broker
+    image: rabbitmq:3.8-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME?Variable not set}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD?Variable not set}
+    restart: unless-stopped
+    ports:
+      - ${RABBITMQ_EXPOSE?Variable not set}:5672
+      - ${RABBITMQ_MANAGEMENT_EXPOSE?Variable not set}:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  pg_data: {}
+  redis_data: {}
+  rabbitmq_data: {}

@@ -13,3 +13,35 @@ except ModuleNotFoundError:
 
 
 app = create_app()
+celery_app = app.celery_app
+
+
+def run_worker():
+    import subprocess
+
+    subprocess.call(
+        [
+            "celery",
+            "-A",
+            "app.main.celery_app",
+            "worker",
+            "-c",
+            "1",
+            "--loglevel=info",
+            "-E",
+            "--without-heartbeat",
+            "--without-gossip",
+            "--without-mingle",
+            "-Ofair",
+        ]
+    )
+
+
+def celery_watchgod():
+    from watchgod import run_process
+
+    run_process("./app", run_worker)
+
+
+if __name__ == "__main__":
+    celery_watchgod()

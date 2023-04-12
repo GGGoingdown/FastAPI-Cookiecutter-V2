@@ -3,5 +3,6 @@ template/
 
 .mypy_cache/
 
-.vscode/
+.pytest_cache/
 
+.vscode/

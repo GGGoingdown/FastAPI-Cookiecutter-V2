@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from pydantic import ValidationError
+from passlib.context import CryptContext
 
 from app import utils
 from app.schema import UserSchema, AuthSchema
@@ -64,9 +65,24 @@ class AuthenticationSelector:
 ################################################
 # Authentication
 ################################################
+class BaseAuthService:
+    invalid_username_or_password_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect username or password",
+    )
+
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+    @classmethod
+    def verify_password(cls, plain_password: str, hashed_password: str) -> bool:
+        return cls.pwd_context.verify(plain_password, hashed_password)
+
+    @classmethod
+    def get_password_hash(cls, password: str) -> str:
+        return cls.pwd_context.hash(password)
 
 
-class AuthenticationService:
+class AuthenticationService(BaseAuthService):
     __slots__ = ("_auth_selector",)
 
     def __init__(
@@ -107,7 +123,7 @@ class AuthenticationService:
 ################################################
 # Authorization
 ################################################
-class AuthorizationService:
+class AuthorizationService(BaseAuthService):
     __slots__ = ("_auth_selector",)
 
     def __init__(

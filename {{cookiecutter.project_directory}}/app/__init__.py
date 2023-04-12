@@ -10,11 +10,20 @@ __SERVER_HOST__ = {
     "production": "https://www.gggoingdown.com",
 }
 ##########################################################################################
+import celery
+from celery import current_app as current_celery_app
 from fastapi import FastAPI
 from loguru import logger
 from contextlib import asynccontextmanager
 
-from app.config import settings
+from app.config import settings, CeleryConfiguration
+
+
+def create_celery() -> celery:
+    celery_app = current_celery_app
+    celery_app.config_from_object(CeleryConfiguration)
+
+    return celery_app
 
 
 def add_excepptions(app: FastAPI) -> None:
@@ -66,6 +75,9 @@ def create_app() -> FastAPI:
         ],
         lifespan=lifespan,
     )
+
+    app.celery_app = create_celery()
+
     # Create routers
     from app import router
 
@@ -74,17 +86,12 @@ def create_app() -> FastAPI:
     # Create dependency injector application
     import sys
     from app.containers import Application
-    from app import security
+    from app import security, broker
 
     container = Application()
 
     container.config.from_pydantic(settings)
-    container.wire(
-        modules=[
-            sys.modules[__name__],
-            security,
-        ]
-    )
+    container.wire(modules=[sys.modules[__name__], security, broker])
     logger.info("Dependency injector application created")
     app.container = container
 

@@ -1,11 +1,17 @@
 from dependency_injector import containers, providers
 
 from app.config import Settings
-from app import services, __VERSION__
+from app import db, services, repositories, __VERSION__
 
 
 class Gateway(containers.DeclarativeContainer):
     config: Settings = providers.Configuration()
+
+    redis_client = providers.Resource(db.redis_init)
+
+    pg_client = providers.Resource(
+        db.DBResource,
+    )
 
 
 class Service(containers.DeclarativeContainer):
@@ -32,6 +38,11 @@ class Service(containers.DeclarativeContainer):
         services.AsyncRequestHandler,
         retry_attempts=3,
         timeout=10,
+    )
+
+    # Repositories
+    user_repo: repositories.UserRepo = providers.Singleton(
+        repositories.UserRepo,
     )
 
     jwt_handler: services.JWTHandler = providers.Singleton(

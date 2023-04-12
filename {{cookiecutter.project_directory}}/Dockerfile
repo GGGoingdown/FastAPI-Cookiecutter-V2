@@ -12,8 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE 1 \
     PYTHONUNBUFFERED 1
 
 WORKDIR /app
-#TODO: Use this for postgresql
-# RUN apt-get update && apt-get install -y libpq-dev gcc
+# For psycopg2
+RUN apt-get update && apt-get install -y libpq-dev gcc
 
 COPY --from=requirements-stage /tmp/requirements.txt /code/requirements.txt
 
@@ -22,11 +22,11 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # Application src
 COPY ./app /app/app
 
-#TODO: Application pre-start script
-# COPY ./pre_start /app/pre_start
+# Pre-start script
+COPY ./prestart /app/prestart
 
 # DB Migration
-# COPY ./migrations /app/migrations
+COPY ./migrations /app/migrations
 
 # Script
 COPY ./script /app/script
@@ -34,6 +34,6 @@ COPY ./script /app/script
 # Pyproject
 COPY pyproject.toml .
 
-RUN chmod +x /app/script/entrypoint.sh
+RUN chmod +x /app/script/*.sh
 
 EXPOSE 8000
